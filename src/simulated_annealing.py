@@ -257,7 +257,7 @@ if __name__ == "__main__":
         "TS4": 50
     }
 
-    folder = "../series"
+    folder = "./series"
 
     for name, k in k_values.items():
 
@@ -317,6 +317,11 @@ if __name__ == "__main__":
             prev = cut
 
         plt.title(f"Segmentación + Ajuste Lineal SA - {name}")
+
+        nombre_base = "resultado_" + name + ".png"
+
+        plt.savefig(f"resultado_{nombre_base.split('.')[0]}.png")
+        print(f"Gráfica guardada como: resultado_{nombre_base.split('.')[0]}.png")
         plt.xlabel("Tiempo")
         plt.ylabel("Valor")
         plt.grid(True)

@@ -59,92 +59,132 @@ def generar_vecinos(cortes, N):
 # HILL CLIMBING SIMPLE
 # ==============================
 
-def hill_climbing_simple(serie, k, max_iter=1000):
+def hill_climbing_simple(serie, k, iteraciones):
     N = len(serie)
-    cortes_actual = sorted(random.sample(range(1, N), k - 1))
-    error_actual = evaluar_solucion(cortes_actual, serie) 
+
+
+    mean = 0
+    mejor_corte = None
+    mejor_error = 1000
+
     
     start_time = time.time()
 
-    for _ in range(max_iter):
-        vecinos = generar_vecinos(cortes_actual, N)
-        mejora = False
+    for _ in range(iteraciones):
+        cortes_actual = sorted(random.sample(range(1, N), k - 1))
+        error_actual = evaluar_solucion(cortes_actual, serie) 
 
-        for vecino in vecinos:
-            error_vecino = evaluar_solucion(vecino, serie)
-            if error_vecino < error_actual:
-                cortes_actual = vecino
-                error_actual = error_vecino
-                mejora = True
+        while True :
+            vecinos = generar_vecinos(cortes_actual, N)
+            mejora = False
+
+            for vecino in vecinos:
+                error_vecino = evaluar_solucion(vecino, serie)
+                if error_vecino < error_actual:
+                    cortes_actual = vecino
+                    error_actual = error_vecino
+                    mejora = True
+                    break
+            if not mejora:
                 break
-        
-        if not mejora:
-            break
 
+        if error_actual < mejor_error:
+            mejor_error = error_actual
+            mejor_corte = cortes_actual
+        mean += error_actual
+
+    mean /= iteraciones
     duracion = time.time() - start_time
-    return cortes_actual, error_actual, duracion
+    return mejor_corte, mejor_error, duracion, mean
     
 
 # ==============================
 # HILL CLIMBING ESTOCÁSTICO
 # ==============================
 
-def hill_climbing_estocastico(serie, k, max_iter=1000):
+def hill_climbing_estocastico(serie, k, iteraciones):
     N = len(serie)
-    cortes_actual = sorted(random.sample(range(1, N), k - 1))
-    error_actual = evaluar_solucion(cortes_actual, serie)
 
+    mean= 0
+    mejor_corte = None
+    mejor_error = 1000
     start_time = time.time()
 
-    for _ in range(max_iter):
-        vecinos = generar_vecinos(cortes_actual, N)
-        mejores_vecinos = []
+    for _ in range(iteraciones):
+        cortes_actual = sorted(random.sample(range(1, N), k - 1))
+        error_actual = evaluar_solucion(cortes_actual, serie)
 
-        for vecino in vecinos:
-            error_vecino = evaluar_solucion(vecino, serie)
-            if error_vecino < error_actual:
-                mejores_vecinos.append((vecino, error_vecino))
-        
-        if not mejores_vecinos:
-            break
+        while True: 
 
-        cortes_actual, error_actual = random.choice(mejores_vecinos)
+            vecinos = generar_vecinos(cortes_actual, N)
+            mejores_vecinos = []
 
+            for vecino in vecinos:
+                error_vecino = evaluar_solucion(vecino, serie)
+                if error_vecino < error_actual:
+                    mejores_vecinos.append((vecino, error_vecino))
+            
+            if not mejores_vecinos:
+                break
+
+            cortes_actual, error_actual = random.choice(mejores_vecinos)
+        if error_actual < mejor_error:
+            mejor_error = error_actual
+            mejor_corte = cortes_actual
+
+        mean += error_actual
+
+    mean /= iteraciones
     duracion = time.time() - start_time
-    return cortes_actual, error_actual, duracion
+    return mejor_corte, mejor_error, duracion, mean
 
 
 # ==============================
 # HILL CLIMBING MÁXIMA PENDIENTE
 # ==============================
 
-def hill_climbing_maxima_pendiente(serie, k, max_iter=1000):
+def hill_climbing_maxima_pendiente(serie, k, iteraciones):
     N=len(serie)
-    cortes_actual = sorted(random.sample(range(1, N), k - 1))
-    error_actual = evaluar_solucion(cortes_actual, serie)
 
-    start_time = time.time()
+    mean = 0
+    mejor_corte = None
+    mejor_error1 = 1000
+    start_time=time.time()
 
-    for _ in range(max_iter):
-        vecinos = generar_vecinos(cortes_actual, N)
 
-        mejor_vecino = None
-        mejor_error = error_actual
 
-        for vecino in vecinos:
-            error_vecino = evaluar_solucion(vecino, serie)
-            if error_vecino < mejor_error:
-                mejor_vecino = vecino
-                mejor_error = error_vecino
+    for _ in range(iteraciones):
         
-        if mejor_vecino is None:
-            break
-        
-        cortes_actual = mejor_vecino 
-        error_actual = mejor_error
+        cortes_actual = sorted(random.sample(range(1, N), k - 1))
+        error_actual = evaluar_solucion(cortes_actual, serie)
+
+        while True: 
+            vecinos = generar_vecinos(cortes_actual, N)
+            mejor_vecino = None
+            mejor_error = error_actual
+
+            for vecino in vecinos:
+                error_vecino = evaluar_solucion(vecino, serie)
+                if error_vecino < mejor_error:
+                    mejor_vecino = vecino
+                    mejor_error = error_vecino
+            
+            if mejor_vecino is None:
+                break
+            
+            cortes_actual = mejor_vecino 
+            error_actual = mejor_error
+
+        if error_actual < mejor_error1:
+            mejor_error1 = error_actual
+            mejor_corte = cortes_actual
+        mean += error_actual
+    
+    mean /= iteraciones
+
     
     duracion = time.time() - start_time
-    return cortes_actual, error_actual, duracion
+    return mejor_corte, mejor_error1, duracion, mean
 
 
 # ==============================
@@ -169,8 +209,9 @@ if __name__ == "__main__":
     serie = cargar_serie(ruta_archivo)
 
     if serie is not None:
+        ITERACIONES = 500
 
-        print(f"Archivo: {ruta_archivo} | K: {k_objetivo}")
+        print(f"Archivo: {ruta_archivo} | K: {k_objetivo} | Iteraciones: {ITERACIONES}")
 
         # -------- ELECCIÓN DEL ALGORITMO --------
         print("\nElige la variante de Hill Climbing a ejecutar:")
@@ -185,25 +226,31 @@ if __name__ == "__main__":
         # -------- SIMPLE --------
         if opcion == "1" or opcion == "4":
             print("\n--- Hill Climbing Simple ---")
-            cortes_s, error_s, tiempo_s = hill_climbing_simple(serie, k_objetivo)
+            cortes_s, error_s, tiempo_s, mean_s = hill_climbing_simple(serie, k_objetivo, ITERACIONES)
             print(f"MSE: {error_s:.6f}")
             print(f"Tiempo: {tiempo_s:.4f} segundos")
+            print(f"Media MSE durante iteraciones: {mean_s:.6f}")
+            print(f"RMSE: {np.sqrt(error_s):.6f}")
             resultados.append(("Simple", cortes_s, error_s, tiempo_s))
 
         # -------- ESTOCÁSTICO --------
         if opcion == "2" or opcion == "4":
             print("\n--- Hill Climbing Estocástico ---")
-            cortes_e, error_e, tiempo_e = hill_climbing_estocastico(serie, k_objetivo)
+            cortes_e, error_e, tiempo_e, mean_e = hill_climbing_estocastico(serie, k_objetivo, ITERACIONES)
             print(f"MSE: {error_e:.6f}")
             print(f"Tiempo: {tiempo_e:.4f} segundos")
+            print(f"Media MSE durante iteraciones: {mean_e:.6f}")
+            print(f"RMSE: {np.sqrt(error_e):.6f}")
             resultados.append(("Estocástico", cortes_e, error_e, tiempo_e))
 
         # -------- MÁXIMA PENDIENTE --------
         if opcion == "3" or opcion == "4":
             print("\n--- Hill Climbing Máxima Pendiente ---")
-            cortes_m, error_m, tiempo_m = hill_climbing_maxima_pendiente(serie, k_objetivo)
+            cortes_m, error_m, tiempo_m, mean_m = hill_climbing_maxima_pendiente(serie, k_objetivo, ITERACIONES)
             print(f"MSE: {error_m:.6f}")
             print(f"Tiempo: {tiempo_m:.4f} segundos")
+            print(f"Media MSE durante iteraciones: {mean_m:.6f}")
+            print(f"RMSE: {np.sqrt(error_m):.6f}")
             resultados.append(("Máxima Pendiente", cortes_m, error_m, tiempo_m))
 
         for nombre_alg, cortes, _, _ in resultados:
