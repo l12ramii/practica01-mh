@@ -54,8 +54,8 @@ def random_search(serie, k, iteraciones):
 
 if __name__ == "__main__":
     # Verificación de argumentos de entrada
-    if len(sys.argv) < 2:
-        print("Uso: python random_search.py <ruta_archivo_ts>")
+    if len(sys.argv) < 3:
+        print("Uso: python random_search.py <ruta_archivo_ts> <numero_iteraciones")
         sys.exit(1)
 
     ruta_archivo = sys.argv[1]
@@ -71,28 +71,33 @@ if __name__ == "__main__":
         k_objetivo = int(input(f"No se reconoció la serie. Introduce el valor de k: "))
 
     serie = cargar_serie(ruta_archivo)
-    
+    ITERACIONES = int(sys.argv[2])
+
+
     if serie is not None:
-        ITERACIONES = 10000 # Ajustable según capacidad de cómputo 
-        print(f"--- Iniciando Random Search ---")
-        print(f"Archivo: {ruta_archivo} | K: {k_objetivo} | Iteraciones: {ITERACIONES}")
+            print(f"--- Iniciando Random Search ---")
+            print(f"Archivo: {ruta_archivo} | K: {k_objetivo} | Iteraciones: {ITERACIONES}")
         
-        cortes, error, duracion = random_search(serie, k_objetivo, ITERACIONES)
+            cortes, error, duracion = random_search(serie, k_objetivo, ITERACIONES)
         
-        print(f"\nRESULTADOS:")
-        print(f"- MSE Promedio (Exactitud): {error:.6f}")
-        print(f"- Tiempo de Cómputo: {duracion:.4f} segundos")
+            print(f"\nRESULTADOS:")
+            print(f"- MSE Promedio (Exactitud): {error:.6f}")
+            print(f"- Tiempo de Cómputo: {duracion:.4f} segundos")
+
+            # Guardar datos en fichero .txt
+            with open("random_search.txt", "a") as file:
+                file.write(f"\n{nombre_base}, {error:.6f}, {duracion:.4f}, {ITERACIONES}")
         
-        # Generar gráfica para la Memoria
-        plt.figure(figsize=(12, 6))
-        plt.plot(serie, color='lightgray', label='Serie Original')
-        puntos_completos = [0] + cortes + [len(serie)]
-        for i in range(len(puntos_completos)-1):
-            idx = range(puntos_completos[i], puntos_completos[i+1])
-            reg = LinearRegression().fit(np.array(idx).reshape(-1, 1), serie[idx])
-            plt.plot(idx, reg.predict(np.array(idx).reshape(-1, 1)), linewidth=2)
+        # Generar gráfica 
+    plt.figure(figsize=(12, 6))
+    plt.plot(serie, color='lightgray', label='Serie Original')
+    puntos_completos = [0] + cortes + [len(serie)]
+    for i in range(len(puntos_completos)-1):
+        idx = range(puntos_completos[i], puntos_completos[i+1])
+        reg = LinearRegression().fit(np.array(idx).reshape(-1, 1), serie[idx])
+        plt.plot(idx, reg.predict(np.array(idx).reshape(-1, 1)), linewidth=2)
         
-        plt.title(f"Random Search: {nombre_base} (k={k_objetivo})")
-        plt.savefig(f"resultado_{nombre_base.split('.')[0]}.png")
-        print(f"Gráfica guardada como: resultado_{nombre_base.split('.')[0]}.png")
-        plt.show()
+    plt.title(f"Random Search: {nombre_base} (k={k_objetivo}) MSE={error}")
+    plt.savefig(f"resultado_{nombre_base.split('.')[0]}.png")
+    print(f"Gráfica guardada como: resultado_{nombre_base.split('.')[0]}.png")
+    plt.show()
