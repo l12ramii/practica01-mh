@@ -94,7 +94,7 @@ def ejecutar_hc(serie, k, variante, iteraciones=1000):
 	return float(mse), float(duracion)
 
 
-def ejecutar_sa(serie, k, cooling_type, max_iter=3000, t0=100.0, tf=0.01, alpha=None):
+def ejecutar_sa(serie, k, cooling_type, max_iter=1000, t0=100.0, tf=0.01, alpha=None):
 	start = time.time()
 	_, mse, _ = simulated_annealing(
 		serie,
