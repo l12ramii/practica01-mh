@@ -342,7 +342,7 @@ def simulated_annealing(
     T0=100,
     alpha=None,
     Tf=0.01,
-    max_iter=1000,
+    max_iter=3000,
     cooling_type="geometric",
 ):
     if T0 <= 0:
@@ -490,7 +490,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--max-iter",
         type=int,
-        default=1000,
+        default=3000,
         help="Numero maximo de iteraciones de SA"
     )
     parser.add_argument(

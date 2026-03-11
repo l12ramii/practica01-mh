@@ -17,3 +17,9 @@ chmod +x cleanup_env.sh
 
 Ejecuta el script: 
 ./cleanup_env.sh
+
+Dentro de src, están los programas de cada heuristica y metaheuristca:
+Se ejecutan con python nombre_del_archivo.py
+Como argumento adicional está --runs nº para darle varias runs y que guarde la mejor, por defecto o si no se pone se hace solo 1 run.
+
+En la carpeta raíz está el main.py que permite generar las graficas del analisis de rendimiento de cada una de las heuristicas vistas, de tal forma que puedan verse de forma más sencilla sus diferencias.

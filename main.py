@@ -94,7 +94,7 @@ def ejecutar_hc(serie, k, variante, iteraciones=1000):
 	return float(mse), float(duracion)
 
 
-def ejecutar_sa(serie, k, cooling_type, max_iter=1000, t0=100.0, tf=0.01, alpha=None):
+def ejecutar_sa(serie, k, cooling_type, max_iter=3000, t0=100.0, tf=0.01, alpha=None):
 	start = time.time()
 	_, mse, _ = simulated_annealing(
 		serie,
@@ -182,29 +182,51 @@ def ejecutar_runs(serie, k, configs, runs, serie_nombre):
 
 
 def asegurar_directorios_rendimiento():
-	dirs = {
+	dirs_base = {
 		"MSE": os.path.join(PERF_DIR, "MSE"),
 		"tiempo": os.path.join(PERF_DIR, "tiempo"),
 		"desviacion_tipica": os.path.join(PERF_DIR, "desviacion_tipica"),
 	}
-	for d in dirs.values():
-		os.makedirs(d, exist_ok=True)
+	subcarpetas = ["HC", "RS", "SA", "todos"]
+
+	dirs = {}
+	for metrica, base_dir in dirs_base.items():
+		os.makedirs(base_dir, exist_ok=True)
+		dirs[metrica] = {}
+		for sub in subcarpetas:
+			path = os.path.join(base_dir, sub)
+			os.makedirs(path, exist_ok=True)
+			dirs[metrica][sub] = path
+
 	return dirs
 
 
-def guardar_graficas(resultados, serie_nombre, runs, contexto):
+def subcarpeta_resultados(algoritmo):
+	if algoritmo == "random_search":
+		return "RS"
+	if algoritmo == "hill_climbing":
+		return "HC"
+	if algoritmo == "simulated_annealing":
+		return "SA"
+	if algoritmo == "all_algorithms":
+		return "todos"
+	raise ValueError("Algoritmo no soportado para guardar resultados")
+
+
+def guardar_graficas(resultados, serie_nombre, runs, contexto, algoritmo):
 	dirs = asegurar_directorios_rendimiento()
+	subcarpeta = subcarpeta_resultados(algoritmo)
 	x = np.arange(1, runs + 1)
 	stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
 	metricas = [
-		("mse_runs", "MSE por run", "MSE", dirs["MSE"]),
-		("time_runs", "Tiempo por run", "Tiempo (s)", dirs["tiempo"]),
+		("mse_runs", "MSE por run", "MSE", dirs["MSE"][subcarpeta]),
+		("time_runs", "Tiempo por run", "Tiempo (s)", dirs["tiempo"][subcarpeta]),
 		(
 			"std_runs",
 			"Desviacion tipica acumulada del error",
 			"Desviacion tipica de MSE",
-			dirs["desviacion_tipica"],
+			dirs["desviacion_tipica"][subcarpeta],
 		),
 	]
 
@@ -223,6 +245,106 @@ def guardar_graficas(resultados, serie_nombre, runs, contexto):
 		plt.savefig(out_file, dpi=150, bbox_inches="tight")
 		plt.close()
 		print(f"Grafica guardada: {out_file}")
+
+	# Graficas de barras: MSE y tiempo con minimo/medio/maximo por configuracion.
+	config_names = list(resultados.keys())
+	indices = np.arange(len(config_names))
+	bar_width = 0.25
+
+	metricas_barras_agrupadas = [
+		(
+			"MSE (minimo, medio, maximo)",
+			{
+				"Minimo": [float(np.min(data["mse_runs"])) for data in resultados.values()],
+				"Medio": [float(data["mse_mean"]) for data in resultados.values()],
+				"Maximo": [float(np.max(data["mse_runs"])) for data in resultados.values()],
+			},
+			"MSE",
+			dirs["MSE"][subcarpeta],
+			"mse_min_medio_max_barras",
+		),
+		(
+			"Tiempo (minimo, medio, maximo)",
+			{
+				"Minimo": [float(np.min(data["time_runs"])) for data in resultados.values()],
+				"Medio": [float(data["time_mean"]) for data in resultados.values()],
+				"Maximo": [float(np.max(data["time_runs"])) for data in resultados.values()],
+			},
+			"Tiempo (s)",
+			dirs["tiempo"][subcarpeta],
+			"tiempo_min_medio_max_barras",
+		),
+	]
+
+	for titulo, series, ylabel, output_dir, nombre_archivo in metricas_barras_agrupadas:
+		plt.figure(figsize=(11, 5.5))
+		offsets = [-bar_width, 0, bar_width]
+		colors = ["#4c78a8", "#59a14f", "#f28e2b"]
+
+		for (label, valores), offset, color in zip(series.items(), offsets, colors):
+			bars = plt.bar(
+				indices + offset,
+				valores,
+				width=bar_width,
+				label=label,
+				color=color,
+				alpha=0.9,
+			)
+			for bar, valor in zip(bars, valores):
+				plt.text(
+					bar.get_x() + bar.get_width() / 2,
+					bar.get_height(),
+					f"{valor:.4f}",
+					ha="center",
+					va="bottom",
+					fontsize=8,
+				)
+
+		plt.title(f"{titulo} - {serie_nombre} ({contexto})")
+		plt.xlabel("Configuracion")
+		plt.ylabel(ylabel)
+		plt.xticks(indices, config_names, rotation=20, ha="right")
+		plt.grid(True, axis="y", alpha=0.25)
+		plt.legend()
+
+		out_file = os.path.join(
+			output_dir,
+			f"{serie_nombre}_{contexto}_{nombre_archivo}_{stamp}.png",
+		)
+		plt.savefig(out_file, dpi=150, bbox_inches="tight")
+		plt.close()
+		print(f"Grafica guardada: {out_file}")
+
+	# Desviacion tipica final (valor al ultimo run).
+	plt.figure(figsize=(11, 5.5))
+	std_final = [
+		float(data["std_runs"][-1]) if data["std_runs"] else 0.0
+		for data in resultados.values()
+	]
+	bars = plt.bar(indices, std_final, color="steelblue", alpha=0.9)
+	plt.title(f"Desviacion tipica final del error - {serie_nombre} ({contexto})")
+	plt.xlabel("Configuracion")
+	plt.ylabel("Desviacion tipica final de MSE")
+	plt.xticks(indices, config_names, rotation=20, ha="right")
+	plt.grid(True, axis="y", alpha=0.25)
+
+	for bar, valor in zip(bars, std_final):
+		plt.text(
+			bar.get_x() + bar.get_width() / 2,
+			bar.get_height(),
+			f"{valor:.4f}",
+			ha="center",
+			va="bottom",
+			fontsize=8,
+		)
+
+	out_file = os.path.join(
+		dirs["desviacion_tipica"][subcarpeta],
+		f"{serie_nombre}_{contexto}_desviacion_final_barras_{stamp}.png",
+	)
+	plt.savefig(out_file, dpi=150, bbox_inches="tight")
+	plt.close()
+	print(f"Grafica guardada: {out_file}")
 
 
 def imprimir_resumen(resultados, serie_nombre):
@@ -389,7 +511,7 @@ def main():
 
 		resultados = ejecutar_runs(serie, k, configs, runs, serie_nombre)
 		imprimir_resumen(resultados, serie_nombre)
-		guardar_graficas(resultados, serie_nombre, runs, contexto)
+		guardar_graficas(resultados, serie_nombre, runs, contexto, algoritmo)
 
 	print("\nProceso completado. Graficas guardadas en graficas/rendimiento/.")
 
